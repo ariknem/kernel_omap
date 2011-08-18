@@ -387,6 +387,7 @@ struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type, bdaddr_t *dst)
 	switch (type) {
 	case ACL_LINK:
 		conn->pkt_type = hdev->pkt_type & ACL_PTYPE_MASK;
+		conn->flowspec.service_type = HCI_FS_SERVICETYPE_BEST_EFFORT;
 		break;
 	case SCO_LINK:
 		if (lmp_esco_capable(hdev))

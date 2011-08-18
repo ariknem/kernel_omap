@@ -593,6 +593,8 @@ static int hci_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long a
 
 	case HCIINQUIRY:
 		return hci_inquiry(argp);
+	case HCISETFLOWSPEC:
+		return hci_set_flowspec(argp);
 
 	default:
 		lock_sock(sk);

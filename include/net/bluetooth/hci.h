@@ -125,6 +125,7 @@ enum {
 #define HCISETLINKMODE	_IOW('H', 226, int)
 #define HCISETACLMTU	_IOW('H', 227, int)
 #define HCISETSCOMTU	_IOW('H', 228, int)
+#define HCISETFLOWSPEC  _IOW('H', 229, int)
 
 #define HCIBLOCKADDR	_IOW('H', 230, int)
 #define HCIUNBLOCKADDR	_IOW('H', 231, int)
@@ -291,6 +292,13 @@ enum {
 #define HCI_ERROR_REMOTE_USER_TERM	0x13
 #define HCI_ERROR_LOCAL_HOST_TERM	0x16
 #define HCI_ERROR_PAIRING_NOT_ALLOWED	0x18
+
+/* Flow specification definitions */
+#define HCI_FS_SERVICETYPE_NO_TRAFFIC  0x00
+#define HCI_FS_SERVICETYPE_BEST_EFFORT 0x01
+#define HCI_FS_SERVICETYPE_GUARANTEED  0x02
+#define HCI_FS_DIR_OUTGOING 0x0
+#define HCI_FS_DIR_INCOMING 0x1
 
 /* Flow control modes */
 #define HCI_FLOW_CTL_MODE_PACKET_BASED	0x00
@@ -542,6 +550,22 @@ struct hci_rp_role_discovery {
 	__u8     status;
 	__le16   handle;
 	__u8     role;
+} __packed;
+
+#define HCI_OP_SET_FLOW_SPEC		0x0810
+struct hci_flowspec {
+	__u8	flowdir;
+	__u8    service_type;
+	__u32   token_rate;
+	__u32   bucket_size;
+	__u32   peak_bandwidth;
+	__u32   latency;
+} __packed;
+
+struct hci_cp_flowspec {
+	__u16	handle;
+	__u8	flags;
+	struct hci_flowspec	flowspec;
 } __packed;
 
 #define HCI_OP_SWITCH_ROLE		0x080b
@@ -1069,6 +1093,14 @@ struct hci_ev_pscan_rep_mode {
 	__u8     pscan_rep_mode;
 } __packed;
 
+#define HCI_EV_FLOWSPEC_COMPLETE	0x21
+struct hci_ev_flowspec_complete {
+	__u8	status;
+	__le16	handle;
+	__u8	flags;
+	struct hci_flowspec	flowspec;
+} __packed;
+
 #define HCI_EV_INQUIRY_RESULT_WITH_RSSI	0x22
 struct inquiry_info_with_rssi {
 	bdaddr_t bdaddr;
@@ -1433,6 +1465,12 @@ struct hci_inquiry_req {
 	__u8  num_rsp;
 };
 #define IREQ_CACHE_FLUSH 0x0001
+
+struct hci_flowspec_req {
+	__u16	dev_id;
+	__u16	handle;
+	struct hci_flowspec	flowspec;
+} __packed;
 
 extern bool enable_hs;
 extern bool enable_le;
