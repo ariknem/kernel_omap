@@ -94,18 +94,22 @@ static void st_reg_completion_cb(void *priv_data, char data)
 }
 
 /* Called by Shared Transport layer when receive data is
- * available */
+ * available
+ * Return:
+ * 0 if buffer handled (affectivly allways even if error found)
+ * if return !=0 the buffer will be freed by the st
+ */
 static long st_receive(void *priv_data, struct sk_buff *skb)
 {
 	struct ti_st *lhst = priv_data;
 	int err;
 
 	if (!skb)
-		return -EFAULT;
+		return 0;
 
 	if (!lhst) {
 		kfree_skb(skb);
-		return -EFAULT;
+		return 0;
 	}
 
 	skb->dev = (void *) lhst->hdev;
@@ -114,7 +118,7 @@ static long st_receive(void *priv_data, struct sk_buff *skb)
 	err = hci_recv_frame(skb);
 	if (err < 0) {
 		BT_ERR("Unable to push skb to HCI core(%d)", err);
-		return err;
+		return 0;
 	}
 
 	lhst->hdev->stat.byte_rx += skb->len;
