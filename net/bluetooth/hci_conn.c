@@ -524,30 +524,37 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst, __u8
 	BT_DBG("%s dst %s type %d", hdev->name, batostr(dst), addr_type);
 
 	if (type == LE_LINK) {
-		struct adv_entry *entry;
+		struct adv_entry *entry = NULL;
+		u8 dst_type;
 
 		le = hci_conn_hash_lookup_ba(hdev, LE_LINK, dst);
-		if (le)
-			return ERR_PTR(-EBUSY);
+		if (!le) {
+			if (addr_type == BT_ADDR_INVALID) {
+				entry = hci_find_adv_entry(hdev, dst);
+				if (!entry)
+					return ERR_PTR(-EHOSTUNREACH);
 
-		if (addr_type == BT_ADDR_INVALID) {
-			entry = hci_find_adv_entry(hdev, dst);
-			if (!entry)
-				return ERR_PTR(-EHOSTUNREACH);
+				dst_type = entry->bdaddr_type;
+			} else {
+				if (addr_type == BT_ADDR_LE_RANDOM)
+					dst_type = ADDR_LE_DEV_RANDOM;
+				else
+					dst_type = ADDR_LE_DEV_PUBLIC;
+			}
 
-			addr_type = entry->bdaddr_type;
-		} else {
-			addr_type = (addr_type == BT_ADDR_LE_RANDOM ? ADDR_LE_DEV_RANDOM : ADDR_LE_DEV_PUBLIC);
+			le = hci_conn_add(hdev, LE_LINK, dst);
+			if (!le)
+				return ERR_PTR(-ENOMEM);
+
+			le->dst_type = dst_type;
+			le->pending_sec_level = sec_level;
+			le->sec_level = BT_SECURITY_LOW;
+			le->auth_type = auth_type;
+			hci_le_connect(le);
 		}
-		BT_DBG("addr_type=%d",addr_type);
 
-		le = hci_conn_add(hdev, LE_LINK, dst);
-		if (!le)
-			return ERR_PTR(-ENOMEM);
-
-		le->dst_type = addr_type;
-
-		hci_le_connect(le);
+		le->pending_sec_level = sec_level;
+		le->auth_type = auth_type;
 
 		hci_conn_hold(le);
 
