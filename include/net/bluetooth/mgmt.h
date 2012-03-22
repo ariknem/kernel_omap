@@ -350,6 +350,16 @@ struct mgmt_cp_set_device_id {
 } __packed;
 #define MGMT_SET_DEVICE_ID_SIZE		8
 
+#define MGMT_OP_ENCRYPT_LINK		0x0029
+struct mgmt_cp_encrypt_link {
+	bdaddr_t	bdaddr;
+} __packed;
+#define MGMT_ENCRYPT_LINK_SIZE		6
+struct mgmt_rp_encrypt_link {
+	bdaddr_t	bdaddr;
+	__u8	status;
+} __packed;
+
 #define MGMT_EV_CMD_COMPLETE		0x0001
 struct mgmt_ev_cmd_complete {
 	__le16	opcode;

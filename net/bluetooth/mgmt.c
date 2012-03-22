@@ -79,6 +79,7 @@ static const u16 mgmt_commands[] = {
 	MGMT_OP_BLOCK_DEVICE,
 	MGMT_OP_UNBLOCK_DEVICE,
 	MGMT_OP_SET_DEVICE_ID,
+	MGMT_OP_ENCRYPT_LINK,
 };
 
 static const u16 mgmt_events[] = {
@@ -1834,6 +1835,114 @@ static int set_io_capability(struct sock *sk, struct hci_dev *hdev, void *data,
 			    0);
 }
 
+static inline struct pending_cmd *find_encrypt_link(struct hci_conn *conn)
+{
+	struct hci_dev *hdev = conn->hdev;
+	struct pending_cmd *cmd;
+
+	list_for_each_entry(cmd, &hdev->mgmt_pending, list) {
+		if (cmd->opcode != MGMT_OP_ENCRYPT_LINK)
+			continue;
+
+		if (cmd->user_data != conn)
+			continue;
+
+		return cmd;
+	}
+
+	return NULL;
+}
+
+static void encrypt_link_complete(struct pending_cmd *cmd, u8 status)
+{
+	struct mgmt_rp_encrypt_link rp;
+	struct hci_conn *conn = cmd->user_data;
+
+	bacpy(&rp.bdaddr, &conn->dst);
+	rp.status = status;
+
+	cmd_complete(cmd->sk, cmd->index, MGMT_OP_ENCRYPT_LINK, status,
+		     &rp, sizeof(rp));
+
+	/* So we don't get further callbacks for this connection */
+	conn->security_cfm_cb = NULL;
+
+	hci_conn_put(conn);
+
+	mgmt_pending_remove(cmd);
+}
+
+static void encrypt_link_complete_cb(struct hci_conn *conn, u8 status)
+{
+	struct pending_cmd *cmd;
+
+	BT_DBG("status %u", status);
+
+	cmd = find_encrypt_link(conn);
+	if (!cmd)
+		BT_DBG("Unable to find a pending command");
+	else
+		encrypt_link_complete(cmd, mgmt_status(status));
+}
+
+static int encrypt_link(struct sock *sk, struct hci_dev *hdev, void *data,
+		        u16 len)
+{
+	struct mgmt_cp_encrypt_link *cp = data;
+	struct pending_cmd *cmd;
+	u8 sec_level, auth_type;
+	struct hci_conn *conn;
+	int err;
+
+	BT_DBG("");
+
+	hci_dev_lock(hdev);
+
+	if (!hdev_is_powered(hdev)) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_ENCRYPT_LINK,
+				 MGMT_STATUS_NOT_POWERED);
+		goto unlock;
+	}
+
+	sec_level = BT_SECURITY_MEDIUM;
+	auth_type = HCI_AT_GENERAL_BONDING;
+
+	conn = hci_conn_hash_lookup_ba(hdev, ACL_LINK, &cp->bdaddr);
+	if (!conn) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_ENCRYPT_LINK,
+				 MGMT_STATUS_NOT_CONNECTED);
+		goto unlock;
+	}
+
+	hci_conn_hold(conn);
+
+	if (conn->state != BT_CONNECTED && conn->state != BT_CONFIG) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_ENCRYPT_LINK,
+				 MGMT_STATUS_NOT_CONNECTED);
+		hci_conn_put(conn);
+		goto unlock;
+	}
+
+	cmd = mgmt_pending_add(sk, MGMT_OP_ENCRYPT_LINK, hdev, data, len);
+	if (!cmd) {
+		err = -ENOMEM;
+		hci_conn_put(conn);
+		goto unlock;
+	}
+
+	conn->security_cfm_cb = encrypt_link_complete_cb;
+	cmd->user_data = conn;
+
+	if (hci_conn_security(conn, sec_level, auth_type))
+		encrypt_link_complete(cmd, 0);
+
+	err = 0;
+
+unlock:
+	hci_dev_unlock(hdev);
+	return err;
+}
+
 static inline struct pending_cmd *find_pairing(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
@@ -2705,6 +2814,7 @@ static const struct mgmt_handler {
 	{ block_device,           false, MGMT_BLOCK_DEVICE_SIZE },
 	{ unblock_device,         false, MGMT_UNBLOCK_DEVICE_SIZE },
 	{ set_device_id,          false, MGMT_SET_DEVICE_ID_SIZE },
+	{ encrypt_link,           false, MGMT_ENCRYPT_LINK_SIZE },
 };
 
 
