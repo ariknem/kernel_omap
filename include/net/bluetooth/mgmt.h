@@ -360,6 +360,16 @@ struct mgmt_rp_encrypt_link {
 	__u8	status;
 } __packed;
 
+#define MGMT_OP_READ_RSSI_LEVEL		0x002A
+struct mgmt_cp_read_rssi_level {
+	bdaddr_t	bdaddr;
+} __packed;
+#define MGMT_READ_RSSI_LEVEL_SIZE	6
+struct mgmt_rp_read_rssi_level {
+	bdaddr_t	bdaddr;
+	__s8		rssi;
+} __packed;
+
 #define MGMT_EV_CMD_COMPLETE		0x0001
 struct mgmt_ev_cmd_complete {
 	__le16	opcode;
