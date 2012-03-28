@@ -688,6 +688,20 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname, ch
 		chan->chan_policy = (u8) opt;
 		break;
 
+	case BT_ADDR_TYPE:
+		if (get_user(opt, (u32 __user *) optval)) {
+			err = -EFAULT;
+			break;
+		}
+
+		if (opt > BT_ADDR_LE_RANDOM) {
+			err = -EINVAL;
+			BT_ERR("Invalid address type(%02X)",opt);
+			break;
+		}
+		chan->addr_type = opt;
+		break;
+
 	default:
 		err = -ENOPROTOOPT;
 		break;

@@ -498,6 +498,8 @@ struct l2cap_chan {
 	void			*data;
 	struct l2cap_ops	*ops;
 	struct mutex		lock;
+
+	__u32 			addr_type;
 };
 
 struct l2cap_ops {

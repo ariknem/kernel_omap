@@ -109,6 +109,13 @@ struct bt_power {
  */
 #define BT_CHANNEL_POLICY_AMP_PREFERRED		2
 
+#define BT_ADDR_TYPE 1000
+
+#define BT_ADDR_BREDR			0x00
+#define BT_ADDR_LE_PUBLIC		0x01
+#define BT_ADDR_LE_RANDOM		0x02
+#define BT_ADDR_INVALID			0xff
+
 __printf(1, 2)
 int bt_info(const char *fmt, ...);
 __printf(1, 2)

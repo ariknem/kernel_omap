@@ -515,13 +515,13 @@ EXPORT_SYMBOL(hci_get_route);
 
 /* Create SCO, ACL or LE connection.
  * Device _must_ be locked */
-struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst, __u8 sec_level, __u8 auth_type)
+struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst, __u8 addr_type, __u8 sec_level, __u8 auth_type)
 {
 	struct hci_conn *acl;
 	struct hci_conn *sco;
 	struct hci_conn *le;
 
-	BT_DBG("%s dst %s", hdev->name, batostr(dst));
+	BT_DBG("%s dst %s type %d", hdev->name, batostr(dst), addr_type);
 
 	if (type == LE_LINK) {
 		struct adv_entry *entry;
@@ -530,15 +530,22 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst, __u8
 		if (le)
 			return ERR_PTR(-EBUSY);
 
-		entry = hci_find_adv_entry(hdev, dst);
-		if (!entry)
-			return ERR_PTR(-EHOSTUNREACH);
+		if (addr_type == BT_ADDR_INVALID) {
+			entry = hci_find_adv_entry(hdev, dst);
+			if (!entry)
+				return ERR_PTR(-EHOSTUNREACH);
+
+			addr_type = entry->bdaddr_type;
+		} else {
+			addr_type = (addr_type == BT_ADDR_LE_RANDOM ? ADDR_LE_DEV_RANDOM : ADDR_LE_DEV_PUBLIC);
+		}
+		BT_DBG("addr_type=%d",addr_type);
 
 		le = hci_conn_add(hdev, LE_LINK, dst);
 		if (!le)
 			return ERR_PTR(-ENOMEM);
 
-		le->dst_type = entry->bdaddr_type;
+		le->dst_type = addr_type;
 
 		hci_le_connect(le);
 
