@@ -1039,6 +1039,10 @@ int mgmt_new_ltk(struct hci_dev *hdev, struct smp_ltk *key, u8 persistent);
 
 int mgmt_read_rssi_complete(struct hci_dev *hdev, bdaddr_t* bdaddr, s8 rssi,
 			    u8 status);
+int mgmt_read_tx_power_complete(struct hci_dev *hdev, bdaddr_t *bdaddr,
+				u8 link_type, u8 addr_type, s8 level,
+				u8 status);
+int mgmt_read_tx_power_failed(struct hci_dev *hdev);
 
 /* HCI info for socket */
 #define hci_pi(sk) ((struct hci_pinfo *) sk)

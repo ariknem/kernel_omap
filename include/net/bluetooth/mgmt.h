@@ -370,6 +370,18 @@ struct mgmt_rp_read_rssi_level {
 	__s8		rssi;
 } __packed;
 
+#define MGMT_OP_READ_TX_POWER_LEVEL	0x002B
+struct mgmt_cp_read_tx_power_level {
+	struct	mgmt_addr_info addr;
+	__u8	type;
+} __packed;
+#define MGMT_READ_TX_POWER_LEVEL_SIZE	(MGMT_ADDR_INFO_SIZE + 1)
+struct mgmt_rp_read_tx_power_level {
+	struct	mgmt_addr_info addr;
+	__u8	status;
+	__s8	level;
+} __packed;
+
 #define MGMT_EV_CMD_COMPLETE		0x0001
 struct mgmt_ev_cmd_complete {
 	__le16	opcode;

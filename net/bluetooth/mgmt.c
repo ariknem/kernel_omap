@@ -81,6 +81,7 @@ static const u16 mgmt_commands[] = {
 	MGMT_OP_SET_DEVICE_ID,
 	MGMT_OP_ENCRYPT_LINK,
 	MGMT_OP_READ_RSSI_LEVEL,
+	MGMT_OP_READ_TX_POWER_LEVEL,
 };
 
 static const u16 mgmt_events[] = {
@@ -1836,6 +1837,63 @@ static int set_io_capability(struct sock *sk, struct hci_dev *hdev, void *data,
 			    0);
 }
 
+static int read_tx_power_level(struct sock *sk, struct hci_dev *hdev,
+			       void *data, u16 len)
+{
+	struct mgmt_cp_read_tx_power_level *cp = data;
+	struct hci_cp_read_tx_power hci_cp;
+	struct pending_cmd *cmd;
+	struct hci_conn *conn;
+	int err;
+
+	BT_DBG("%s", hdev->name);
+
+	hci_dev_lock(hdev);
+
+	if (!hdev_is_powered(hdev)) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_READ_TX_POWER_LEVEL,
+				 MGMT_STATUS_NOT_POWERED);
+		goto unlock;
+	}
+
+	if (mgmt_pending_find(MGMT_OP_READ_TX_POWER_LEVEL, hdev)) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_READ_TX_POWER_LEVEL,
+				 MGMT_STATUS_BUSY);
+		goto unlock;
+	}
+
+	if (cp->addr.type == MGMT_ADDR_BREDR)
+		conn = hci_conn_hash_lookup_ba(hdev, ACL_LINK,
+					       &cp->addr.bdaddr);
+	else
+		conn = hci_conn_hash_lookup_ba(hdev, LE_LINK,
+					       &cp->addr.bdaddr);
+
+	if (!conn) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_READ_TX_POWER_LEVEL,
+				 MGMT_STATUS_NOT_CONNECTED);
+		goto unlock;
+	}
+
+	cmd = mgmt_pending_add(sk, MGMT_OP_READ_TX_POWER_LEVEL, hdev, data,
+			       len);
+	if (!cmd) {
+		err = -ENOMEM;
+		goto unlock;
+	}
+
+	put_unaligned_le16(conn->handle, &hci_cp.handle);
+	hci_cp.type = cp->type;
+
+	err = hci_send_cmd(hdev, HCI_OP_READ_TX_POWER, sizeof(hci_cp), &hci_cp);
+	if (err < 0)
+		mgmt_pending_remove(cmd);
+
+unlock:
+	hci_dev_unlock(hdev);
+	return err;
+}
+
 static int read_rssi_level(struct sock *sk, struct hci_dev *hdev, void *data,
 			   u16 len)
 {
@@ -2870,6 +2928,7 @@ static const struct mgmt_handler {
 	{ set_device_id,          false, MGMT_SET_DEVICE_ID_SIZE },
 	{ encrypt_link,           false, MGMT_ENCRYPT_LINK_SIZE },
 	{ read_rssi_level,        false, MGMT_READ_RSSI_LEVEL_SIZE },
+	{ read_tx_power_level,    false, MGMT_READ_TX_POWER_LEVEL_SIZE },
 };
 
 
@@ -3278,6 +3337,48 @@ int mgmt_pin_code_request(struct hci_dev *hdev, bdaddr_t *bdaddr, u8 secure)
 
 	return mgmt_event(MGMT_EV_PIN_CODE_REQUEST, hdev, &ev, sizeof(ev),
 			  NULL);
+}
+
+int mgmt_read_tx_power_complete(struct hci_dev *hdev, bdaddr_t *bdaddr,
+				u8 link_type, u8 addr_type, s8 level,
+				u8 status)
+{
+	struct pending_cmd *cmd;
+	struct mgmt_rp_read_tx_power_level rp;
+	int err;
+
+	cmd = mgmt_pending_find(MGMT_OP_READ_TX_POWER_LEVEL, hdev);
+	if (!cmd)
+		return -ENOENT;
+
+	bacpy(&rp.addr.bdaddr, bdaddr);
+	rp.addr.type = link_to_mgmt(link_type, addr_type);
+	rp.status = status;
+	rp.level = level;
+
+	err = cmd_complete(cmd->sk, hdev->id, cmd->opcode, mgmt_status(status),
+			   &rp, sizeof(rp));
+
+	mgmt_pending_remove(cmd);
+
+	return err;
+}
+
+int mgmt_read_tx_power_failed(struct hci_dev *hdev)
+{
+	struct pending_cmd *cmd;
+	int err;
+
+	cmd = mgmt_pending_find(MGMT_OP_READ_TX_POWER_LEVEL, hdev);
+	if (!cmd)
+		return -ENOENT;
+
+	err = cmd_status(cmd->sk, hdev->id, MGMT_OP_READ_TX_POWER_LEVEL,
+			 MGMT_STATUS_FAILED);
+
+	mgmt_pending_remove(cmd);
+
+	return err;
 }
 
 int mgmt_read_rssi_complete(struct hci_dev *hdev, bdaddr_t* bdaddr, s8 rssi,
