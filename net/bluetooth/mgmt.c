@@ -1764,12 +1764,12 @@ static int pin_code_reply(struct sock *sk, struct hci_dev *hdev, void *data,
 		goto failed;
 	}
 
-	if (conn->pending_sec_level == BT_SECURITY_HIGH && cp->pin_len != 16) {
+	if (conn->pending_sec_level == BT_SECURITY_HIGH && cp->pin_len < 4) {
 		struct mgmt_cp_pin_code_neg_reply ncp;
 
 		memcpy(&ncp.addr, &cp->addr, sizeof(ncp.addr));
 
-		BT_ERR("PIN code is not 16 bytes long");
+		BT_ERR("PIN code needs to be atleast 4 bytes long");
 
 		err = send_pin_code_neg_reply(sk, hdev, &ncp);
 		if (err >= 0)
