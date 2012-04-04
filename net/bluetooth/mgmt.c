@@ -761,6 +761,8 @@ static int send_settings_rsp(struct sock *sk, u16 opcode, struct hci_dev *hdev)
 {
 	__le32 settings = cpu_to_le32(get_current_settings(hdev));
 
+	BT_DBG("");
+
 	return cmd_complete(sk, hdev->id, opcode, 0, &settings,
 			    sizeof(settings));
 }
@@ -811,6 +813,7 @@ static int set_powered(struct sock *sk, struct hci_dev *hdev, void *data,
 	err = 0;
 
 failed:
+	BT_DBG("error %d", err);
 	hci_dev_unlock(hdev);
 	return err;
 }
@@ -878,8 +881,7 @@ static int set_discoverable(struct sock *sk, struct hci_dev *hdev, void *data,
 		goto failed;
 	}
 
-	if (mgmt_pending_find(MGMT_OP_SET_DISCOVERABLE, hdev) ||
-			mgmt_pending_find(MGMT_OP_SET_CONNECTABLE, hdev)) {
+	if (mgmt_pending_find(MGMT_OP_SET_DISCOVERABLE, hdev)) {
 		err = cmd_status(sk, hdev->id, MGMT_OP_SET_DISCOVERABLE,
 				 MGMT_STATUS_BUSY);
 		goto failed;
@@ -985,8 +987,7 @@ static int set_connectable(struct sock *sk, struct hci_dev *hdev, void *data,
 		goto failed;
 	}
 
-	if (mgmt_pending_find(MGMT_OP_SET_DISCOVERABLE, hdev) ||
-			mgmt_pending_find(MGMT_OP_SET_CONNECTABLE, hdev)) {
+	if (mgmt_pending_find(MGMT_OP_SET_CONNECTABLE, hdev)) {
 		err = cmd_status(sk, hdev->id, MGMT_OP_SET_CONNECTABLE,
 				 MGMT_STATUS_BUSY);
 		goto failed;
@@ -2961,6 +2962,8 @@ int mgmt_control(struct sock *sk, struct msghdr *msg, size_t msglen)
 	index = __le16_to_cpu(hdr->index);
 	len = __le16_to_cpu(hdr->len);
 
+	BT_DBG("opcode 0x%04x, index %d, len %d", opcode, index, len);
+
 	if (len != msglen - sizeof(*hdr)) {
 		err = -EINVAL;
 		goto done;
@@ -3067,6 +3070,8 @@ int mgmt_powered(struct hci_dev *hdev, u8 powered)
 	struct cmd_lookup match = { NULL, hdev };
 	int err;
 
+	BT_DBG("powered %d", powered);
+
 	if (!test_bit(HCI_MGMT, &hdev->dev_flags))
 		return 0;
 
@@ -3105,6 +3110,8 @@ int mgmt_discoverable(struct hci_dev *hdev, u8 discoverable)
 	bool changed = false;
 	int err = 0;
 
+	BT_DBG(" %d", discoverable);
+
 	if (discoverable) {
 		if (!test_and_set_bit(HCI_DISCOVERABLE, &hdev->dev_flags))
 			changed = true;
@@ -3130,6 +3137,8 @@ int mgmt_connectable(struct hci_dev *hdev, u8 connectable)
 	struct cmd_lookup match = { NULL, hdev };
 	bool changed = false;
 	int err = 0;
+
+	BT_DBG(" %d", connectable);
 
 	if (connectable) {
 		if (!test_and_set_bit(HCI_CONNECTABLE, &hdev->dev_flags))

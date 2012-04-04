@@ -311,8 +311,7 @@ static void hci_cc_write_scan_enable(struct hci_dev *hdev, struct sk_buff *skb)
 
 	if (param & SCAN_INQUIRY) {
 		set_bit(HCI_ISCAN, &hdev->flags);
-		if (!old_iscan)
-			mgmt_discoverable(hdev, 1);
+		mgmt_discoverable(hdev, 1);
 		if (hdev->discov_timeout > 0) {
 			int to = msecs_to_jiffies(hdev->discov_timeout * 1000);
 			queue_delayed_work(hdev->workqueue, &hdev->discov_off,
@@ -323,8 +322,7 @@ static void hci_cc_write_scan_enable(struct hci_dev *hdev, struct sk_buff *skb)
 
 	if (param & SCAN_PAGE) {
 		set_bit(HCI_PSCAN, &hdev->flags);
-		if (!old_pscan)
-			mgmt_connectable(hdev, 1);
+		mgmt_connectable(hdev, 1);
 	} else if (old_pscan)
 		mgmt_connectable(hdev, 0);
 
