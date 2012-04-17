@@ -329,20 +329,26 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 			goto remove;
 	}
 
+    /*
+     * Read the common registers.
+     */
+    err = sdio_read_cccr(card);
+    if (err)
+        goto remove;
+
 #ifdef CONFIG_TIWLAN_SDIO
+    /*
+     * Override the CCCR information with hard-coded values, 
+     *     except the high_speed indication which helps us differ 
+     *     between high speed and low speed devices.
+     * The high_speed indication is checked below in sdio_enable_hs() and mmc_card_highspeed()
+     */
 	if (host->embedded_sdio_data.cccr)
+    {
+        host->embedded_sdio_data.cccr->high_speed = card->cccr.high_speed;
 		memcpy(&card->cccr, host->embedded_sdio_data.cccr,
 				sizeof(struct sdio_cccr));
-	else {
-#endif
-		/*
-		 * Read the common registers.
-		 */
-		err = sdio_read_cccr(card);
-		if (err)
-			goto remove;
-#ifdef CONFIG_TIWLAN_SDIO
-	}
+    }
 #endif
 
 #ifdef CONFIG_TIWLAN_SDIO
@@ -395,7 +401,7 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 		 */
 		mmc_set_clock(host, 50000000);
 	} else {
-		mmc_set_clock(host, card->cis.max_dtr);
+		mmc_set_clock(host, 24000000);
 	}
 
 	/*
