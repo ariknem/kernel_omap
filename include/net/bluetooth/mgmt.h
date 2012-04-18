@@ -382,6 +382,28 @@ struct mgmt_rp_read_tx_power_level {
 	__s8	level;
 } __packed;
 
+#define MGMT_OP_ADD_REMOVE_FROM_LE_WHITELIST	0x002C
+struct mgmt_cp_add_remove_le_whitelist {
+	__u8	add;
+	struct	mgmt_addr_info addr;
+} __packed;
+#define MGMT_ADD_REMOVE_FROM_LE_WHITELIST_SIZE	(MGMT_ADDR_INFO_SIZE + 1)
+
+#define MGMT_OP_CLEAR_LE_WHITELIST	0x002D
+#define MGMT_CLEAR_LE_WHITELIST_SIZE	0
+
+#define MGMT_OP_TOGGLE_LE_SCAN		0x002E
+struct mgmt_cp_toggle_le_scan {
+	__u8 enable;
+	__u8 type;
+	__u16 interval;
+	__u16 window;
+	__u8 own_addr_type;
+	__u8 filter_policy;
+	__u8 remove_dup;
+} __packed;
+#define MGMT_TOGGLE_LE_SCAN_SIZE	9
+
 #define MGMT_EV_CMD_COMPLETE		0x0001
 struct mgmt_ev_cmd_complete {
 	__le16	opcode;

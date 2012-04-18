@@ -82,6 +82,9 @@ static const u16 mgmt_commands[] = {
 	MGMT_OP_ENCRYPT_LINK,
 	MGMT_OP_READ_RSSI_LEVEL,
 	MGMT_OP_READ_TX_POWER_LEVEL,
+	MGMT_OP_ADD_REMOVE_FROM_LE_WHITELIST,
+	MGMT_OP_CLEAR_LE_WHITELIST,
+	MGMT_OP_TOGGLE_LE_SCAN,
 };
 
 static const u16 mgmt_events[] = {
@@ -1838,6 +1841,150 @@ static int set_io_capability(struct sock *sk, struct hci_dev *hdev, void *data,
 			    0);
 }
 
+static int add_remove_le_whitelist(struct sock *sk, struct hci_dev *hdev,
+				   void *data, u16 len)
+{
+	struct mgmt_cp_add_remove_le_whitelist *cp = data;
+	struct hci_cp_le_add_remove_whitelist hci_cp;
+	int err;
+	__u16 opcode;
+
+	BT_DBG("%s", hdev->name);
+
+	switch (cp->addr.type) {
+	case MGMT_ADDR_LE_PUBLIC:
+		hci_cp.addr_type = ADDR_LE_DEV_PUBLIC;
+		break;
+	case MGMT_ADDR_LE_RANDOM:
+		hci_cp.addr_type = ADDR_LE_DEV_RANDOM;
+		break;
+	default:
+		return cmd_status(sk, hdev->id,
+					MGMT_OP_ADD_REMOVE_FROM_LE_WHITELIST,
+					MGMT_STATUS_INVALID_PARAMS);
+	}
+
+	hci_dev_lock(hdev);
+
+	if (!hdev_is_powered(hdev)) {
+		err = cmd_status(sk, hdev->id,
+				MGMT_OP_ADD_REMOVE_FROM_LE_WHITELIST,
+				MGMT_STATUS_NOT_POWERED);
+		goto unlock;
+	}
+
+	bacpy(&hci_cp.addr, &cp->addr.bdaddr);
+	if (cp->add)
+		opcode = HCI_OP_LE_ADD_WHITELIST;
+	else
+		opcode = HCI_OP_LE_REMOVE_WHITELIST;
+
+	err = hci_send_cmd(hdev, opcode, sizeof(hci_cp), &hci_cp);
+	if (err < 0) {
+		err = cmd_status(sk, hdev->id,
+				MGMT_OP_ADD_REMOVE_FROM_LE_WHITELIST, -err);
+		goto unlock;
+	}
+
+	err = cmd_complete(sk, hdev->id, MGMT_OP_ADD_REMOVE_FROM_LE_WHITELIST,
+				0, NULL, 0);
+unlock:
+	hci_dev_unlock(hdev);
+	return err;
+}
+
+static int clear_le_whitelist(struct sock *sk, struct hci_dev *hdev, void *data,
+			      u16 len)
+{
+	int err;
+
+	BT_DBG("%s", hdev->name);
+
+	hci_dev_lock(hdev);
+
+	if (!hdev_is_powered(hdev)) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_CLEAR_LE_WHITELIST,
+				MGMT_STATUS_NOT_POWERED);
+		goto unlock;
+	}
+
+	err = hci_send_cmd(hdev, HCI_OP_LE_CLEAR_WHITELIST, 0, NULL);
+	if (err < 0) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_CLEAR_LE_WHITELIST,
+				 -err);
+		goto unlock;
+	}
+
+	err = cmd_complete(sk, hdev->id, MGMT_OP_CLEAR_LE_WHITELIST, 0,
+				NULL, 0);
+unlock:
+	hci_dev_unlock(hdev);
+	return err;
+}
+
+static int toggle_le_scan(struct sock *sk, struct hci_dev *hdev, void *data,
+			  u16 len)
+{
+	struct mgmt_cp_toggle_le_scan *cp = data;
+	int err;
+	struct hci_cp_le_set_scan_param param_cp;
+	struct hci_cp_le_set_scan_enable enable_cp;
+
+	BT_DBG("%s", hdev->name);
+
+	switch (cp->own_addr_type) {
+	case MGMT_ADDR_LE_PUBLIC:
+		param_cp.own_address_type = ADDR_LE_DEV_PUBLIC;
+		break;
+	case MGMT_ADDR_LE_RANDOM:
+		param_cp.own_address_type = ADDR_LE_DEV_RANDOM;
+		break;
+	default:
+		return cmd_status(sk, hdev->id, MGMT_OP_TOGGLE_LE_SCAN,
+				  MGMT_STATUS_INVALID_PARAMS);
+	}
+
+	hci_dev_lock(hdev);
+
+	if (!hdev_is_powered(hdev)) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_TOGGLE_LE_SCAN,
+				MGMT_STATUS_NOT_POWERED);
+		goto unlock;
+	}
+
+	/* no use toggling scan parameters when disabling scan */
+	if (!cp->enable)
+		goto disable_only;
+
+	param_cp.type = cp->type;
+	param_cp.interval = cpu_to_le16(cp->interval);
+	param_cp.window = cpu_to_le16(cp->window);
+	param_cp.filter_policy = cp->filter_policy;
+
+	err = hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_PARAM, sizeof(param_cp),
+								&param_cp);
+	if (err < 0) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_TOGGLE_LE_SCAN, -err);
+		goto unlock;
+	}
+
+disable_only:
+	enable_cp.enable = cp->enable;
+	enable_cp.filter_dup = cp->remove_dup;
+
+	err = hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_ENABLE, sizeof(enable_cp),
+								&enable_cp);
+	if (err < 0) {
+		err = cmd_status(sk, hdev->id, MGMT_OP_TOGGLE_LE_SCAN, -err);
+		goto unlock;
+	}
+
+	err = cmd_complete(sk, hdev->id, MGMT_OP_TOGGLE_LE_SCAN, 0, NULL, 0);
+unlock:
+	hci_dev_unlock(hdev);
+	return err;
+}
+
 static int read_tx_power_level(struct sock *sk, struct hci_dev *hdev,
 			       void *data, u16 len)
 {
@@ -2930,6 +3077,9 @@ static const struct mgmt_handler {
 	{ encrypt_link,           false, MGMT_ENCRYPT_LINK_SIZE },
 	{ read_rssi_level,        false, MGMT_READ_RSSI_LEVEL_SIZE },
 	{ read_tx_power_level,    false, MGMT_READ_TX_POWER_LEVEL_SIZE },
+	{ add_remove_le_whitelist,false, MGMT_ADD_REMOVE_FROM_LE_WHITELIST_SIZE },
+	{ clear_le_whitelist,     false, MGMT_CLEAR_LE_WHITELIST_SIZE },
+	{ toggle_le_scan,         false, MGMT_TOGGLE_LE_SCAN_SIZE },
 };
 
 
