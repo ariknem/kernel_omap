@@ -157,6 +157,7 @@ struct hci_dev {
 	__u16		manufacturer;
 	__u16		lmp_subver;
 	__u16		voice_setting;
+	__u8		coding_format;
 	__u8		io_capability;
 	__s8		inq_tx_power;
 	__u16		devid_source;
@@ -318,6 +319,8 @@ struct hci_conn {
 
 	__u8		remote_cap;
 	__u8		remote_auth;
+
+	__u8		voice_settings;
 
 	unsigned int	sent;
 
@@ -564,6 +567,7 @@ void hci_acl_connect(struct hci_conn *conn);
 void hci_acl_disconn(struct hci_conn *conn, __u8 reason);
 void hci_add_sco(struct hci_conn *conn, __u16 handle);
 void hci_setup_sync(struct hci_conn *conn, __u16 handle);
+void hci_enhanced_setup_sync(struct hci_conn *conn, __u16 handle);
 void hci_sco_setup(struct hci_conn *conn, __u8 status);
 
 struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type, bdaddr_t *dst);
@@ -727,6 +731,13 @@ void hci_conn_del_sysfs(struct hci_conn *conn);
 #define lmp_no_flush_capable(dev)  ((dev)->features[6] & LMP_NO_FLUSH)
 #define lmp_le_capable(dev)        ((dev)->features[4] & LMP_LE)
 #define lmp_bredr_capable(dev)     (!((dev)->features[4] & LMP_NO_BREDR))
+
+/* ------- HCI Supported commands ----- */
+#define HCI_ENH_SETUP_SYNC_CMD	    0x08
+#define HCI_ENH_ACCEPT_SYNC_CONN    0x10
+
+#define hci_enh_setup_sync_supported(dev)  		(dev->commands[29] & HCI_ENH_SETUP_SYNC_CMD)
+#define hci_enh_accept_sync_conn_supported(dev)	(dev->commands[29] & HCI_ENH_ACCEPT_SYNC_CONN)
 
 /* ----- Extended LMP capabilities ----- */
 #define lmp_host_le_capable(dev)   ((dev)->host_features[0] & LMP_HOST_LE)

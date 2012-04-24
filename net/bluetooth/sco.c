@@ -186,6 +186,8 @@ static int sco_connect(struct sock *sk)
 	BT_DBG("%s -> %s", batostr(src), batostr(dst));
 
 	hdev = hci_get_route(dst, src);
+	hdev->coding_format = SCO_CODING_FORMAT_CVSD;
+	
 	if (!hdev)
 		return -EHOSTUNREACH;
 
@@ -195,6 +197,8 @@ static int sco_connect(struct sock *sk)
 		type = ESCO_LINK;
 	else
 		type = SCO_LINK;
+
+	hdev->coding_format = sco_pi(sk)->coding_format;
 
 	hcon = hci_connect(hdev, type, dst, BT_ADDR_BREDR, BT_SECURITY_LOW, HCI_AT_NO_BONDING);
 	if (IS_ERR(hcon)) {
@@ -662,12 +666,22 @@ static int sco_sock_setsockopt(struct socket *sock, int level, int optname, char
 {
 	struct sock *sk = sock->sk;
 	int err = 0;
+	u8 coding_format;    
 
 	BT_DBG("sk %p", sk);
 
 	lock_sock(sk);
 
 	switch (optname) {
+	case SCO_CODING_FORMAT:
+		if (get_user(coding_format, (u8 __user *) optval)) {
+			err = -EFAULT;
+			break;
+		}
+        
+		sco_pi(sk)->coding_format = coding_format;
+        
+		break;
 	default:
 		err = -ENOPROTOOPT;
 		break;
@@ -682,6 +696,7 @@ static int sco_sock_getsockopt_old(struct socket *sock, int optname, char __user
 	struct sock *sk = sock->sk;
 	struct sco_options opts;
 	struct sco_conninfo cinfo;
+	struct sco_coding_format codformat;
 	int len, err = 0;
 
 	BT_DBG("sk %p", sk);
@@ -720,6 +735,21 @@ static int sco_sock_getsockopt_old(struct socket *sock, int optname, char __user
 
 		len = min_t(unsigned int, len, sizeof(cinfo));
 		if (copy_to_user(optval, (char *)&cinfo, len))
+			err = -EFAULT;
+
+		break;
+        
+   	case SCO_CODING_FORMAT:
+		if (sk->sk_state != BT_CONNECTED) {
+			err = -ENOTCONN;
+			break;
+		}
+
+		codformat.coding_format = sco_pi(sk)->coding_format;
+
+		BT_DBG("coding format %d", codformat.coding_format);
+		len = min_t(unsigned int, len, sizeof(codformat));
+		if (copy_to_user(optval, (char *)&codformat, len))
 			err = -EFAULT;
 
 		break;

@@ -43,6 +43,7 @@
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
+#include <net/bluetooth/sco.h>
 
 static void hci_le_connect(struct hci_conn *conn)
 {
@@ -165,24 +166,114 @@ void hci_setup_sync(struct hci_conn *conn, __u16 handle)
 {
 	struct hci_dev *hdev = conn->hdev;
 	struct hci_cp_setup_sync_conn cp;
+	struct hci_conn *acl = conn->link;
+	int send_wbs_associate = 0;
+	__u16 opcode;
+	__u16 voice_settings;
 
 	BT_DBG("%p", conn);
 
+	if (hdev->coding_format == SCO_CODING_FORMAT_MSBC) {
+	    /* eSCO with WBS */
+	    voice_settings = 0x63; /* Air Coding Format: Transparent Data */
+        
+	    if (acl->voice_settings != voice_settings) {
+	        /* ACL link need to be associated with WBS */
+	        send_wbs_associate = 1;
+	        opcode = 0xfd78; /* HCI_VS_WBS_Associate */
+	    }
+	} else {
+	    /* eSCO with CVSD */     
+	    voice_settings = 0x60; /* Air Coding Format: CVSD */
+        
+	    if (acl->voice_settings == 0x63) {
+	        /* ACL link need to be de-associated from WBS */
+	        send_wbs_associate = 1;
+	        opcode = 0xfd79; /* HCI_VS_WBS_Disassociate */
+	    }
+	}
+
+    	/* Save voice settings associated with this ACL link */
+	acl->voice_settings = voice_settings;
+        
+	cp.handle   = cpu_to_le16(handle);
+
+	if (send_wbs_associate) {
+	    hci_send_cmd(hdev, opcode, (uint8_t)2, &cp.handle);
+	}
+    
 	conn->state = BT_CONNECT;
 	conn->out = true;
 
 	conn->attempt++;
 
-	cp.handle   = cpu_to_le16(handle);
 	cp.pkt_type = cpu_to_le16(conn->pkt_type);
 
 	cp.tx_bandwidth   = cpu_to_le32(0x00001f40);
 	cp.rx_bandwidth   = cpu_to_le32(0x00001f40);
 	cp.max_latency    = cpu_to_le16(0xffff);
-	cp.voice_setting  = cpu_to_le16(hdev->voice_setting);
+	cp.voice_setting  = cpu_to_le16(voice_settings);
 	cp.retrans_effort = 0xff;
 
 	hci_send_cmd(hdev, HCI_OP_SETUP_SYNC_CONN, sizeof(cp), &cp);
+}
+
+void hci_enhanced_setup_sync(struct hci_conn *conn, __u16 handle)
+{
+	struct hci_dev *hdev = conn->hdev;
+	struct hci_cp_enhanced_setup_sync_conn cp;
+
+	BT_DBG("%p", conn);
+
+	conn->state = BT_CONNECT;
+	conn->out = 1;
+
+	conn->attempt++;
+
+	if ( hdev->coding_format == SCO_CODING_FORMAT_CVSD) {
+	    cp.input_bandwidth = cpu_to_le32(0x00003e80);
+	    cp.output_bandwidth = cpu_to_le32(0x00003e80);
+	
+	} else {
+	    cp.input_bandwidth = cpu_to_le32(0x00007d00);
+	    cp.output_bandwidth = cpu_to_le32(0x00007d00);
+	}
+
+	cp.handle   = cpu_to_le16(handle);
+
+	cp.tx_bandwidth   = cpu_to_le32(0x00001f40);
+	cp.rx_bandwidth   = cpu_to_le32(0x00001f40);
+	cp.tx_coding_format = hdev->coding_format;
+	cp.tx_coding_format_comapny_id = cpu_to_le16(hdev->manufacturer);
+	cp.tx_coding_format_vendor_specific_coding_id = 0x0000;
+	cp.rx_coding_format = hdev->coding_format;
+	cp.rx_coding_format_comapny_id = cpu_to_le16(hdev->manufacturer);
+	cp.rx_coding_format_vendor_specific_coding_id = 0x0000;
+	cp.tx_codec_frame_size = cpu_to_le16(0x0001);
+	cp.rx_codec_frame_size = cpu_to_le16(0x0001);
+	cp.input_coding_format = 0x04;
+	cp.input_coding_format_comapny_id = cpu_to_le16(hdev->manufacturer);
+	cp.input_coding_format_vendor_specific_coding_id = 0x0000;
+	cp.output_coding_format = 0x04;
+	cp.output_coding_format_comapny_id = cpu_to_le16(hdev->manufacturer);
+	cp.output_coding_format_vendor_specific_coding_id = 0x0000;
+	cp.input_coded_data_size = cpu_to_le16(0x0001);
+	cp.output_coded_data_size = cpu_to_le16(0x0001);
+	cp.input_pcm_data_format = 0x02;
+	cp.output_pcm_data_format = 0x02;
+	cp.input_pcm_sample_payload_msb_position = 0x01;
+	cp.output_pcm_sample_payload_msb_position = 0x01;
+	cp.input_data_path = 0x01;
+	cp.output_data_path = 0x01;
+	cp.input_transport_unit_size = 0x11;
+	cp.output_transport_unit_size = 0x11;
+	cp.max_latency    = 0xffff;
+    	cp.pkt_type = cpu_to_le16(0x038f);
+    	//cp.pkt_type = cpu_to_le16(conn->pkt_type);
+    	cp.retrans_effort = 0xff;
+
+       
+	hci_send_cmd(hdev, HCI_OP_ENHANCED_SETUP_SYNC_CONN, sizeof(cp), &cp);
 }
 
 void hci_le_conn_update(struct hci_conn *conn, u16 min, u16 max,
@@ -258,17 +349,22 @@ void hci_le_ltk_neg_reply(struct hci_conn *conn)
 void hci_sco_setup(struct hci_conn *conn, __u8 status)
 {
 	struct hci_conn *sco = conn->link;
+	struct hci_dev *hdev = conn->hdev;
 
 	BT_DBG("%p", conn);
 
 	if (!sco)
 		return;
 
-	if (!status) {
-		if (lmp_esco_capable(conn->hdev))
-			hci_setup_sync(sco, conn->handle);
-		else
-			hci_add_sco(sco, conn->handle);
+        if (!status) {
+            if (lmp_esco_capable(conn->hdev)) {
+                if (hci_enh_setup_sync_supported(hdev))
+                    hci_enhanced_setup_sync(sco, conn->handle);
+                else 
+                    hci_setup_sync(sco, conn->handle);
+	    } else {
+       		hci_add_sco(sco, conn->handle);
+	    }
 	} else {
 		hci_proto_connect_cfm(sco, status);
 		hci_conn_del(sco);

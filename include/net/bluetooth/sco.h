@@ -33,6 +33,17 @@
 #define SCO_DISCONN_TIMEOUT	(HZ * 2)
 #define SCO_CONN_IDLE_TIMEOUT	(HZ * 60)
 
+/* SCO coding format */
+#define SCO_CODING_FORMAT_U_LAW_LOG		0x00
+#define SCO_CODING_FORMAT_A_LAW_LOG		0x01
+#define SCO_CODING_FORMAT_CVSD			0x02
+#define SCO_CODING_FORMAT_TRANSPARENT		0x03
+#define SCO_CODING_FORMAT_LINEAR_PCM		0x04
+#define SCO_CODING_FORMAT_MSBC			0x05
+#define SCO_CODING_FORMAT_VENDOR_SPECIFIC	0xFF
+/*0x06-0xFE	Reserved values*/
+
+
 /* SCO socket address */
 struct sockaddr_sco {
 	sa_family_t	sco_family;
@@ -49,6 +60,11 @@ struct sco_options {
 struct sco_conninfo {
 	__u16 hci_handle;
 	__u8  dev_class[3];
+};
+
+#define SCO_CODING_FORMAT	0x03
+struct sco_coding_format {
+	__u8  coding_format;
 };
 
 /* ---- SCO connections ---- */
@@ -74,6 +90,7 @@ struct sco_pinfo {
 	struct bt_sock	bt;
 	__u32		flags;
 	struct sco_conn	*conn;
+	__u8  coding_format;
 };
 
 #endif /* __SCO_H */

@@ -528,6 +528,78 @@ struct hci_cp_io_capability_neg_reply {
 	__u8     reason;
 } __packed;
 
+#define HCI_OP_ENHANCED_SETUP_SYNC_CONN    0x043d
+struct hci_cp_enhanced_setup_sync_conn {
+	__le16   handle;
+	__le32   tx_bandwidth;
+	__le32   rx_bandwidth;
+	__u8     tx_coding_format;
+	__u16    tx_coding_format_comapny_id;
+	__u16    tx_coding_format_vendor_specific_coding_id;
+	__u8     rx_coding_format;
+	__u16    rx_coding_format_comapny_id;
+	__u16    rx_coding_format_vendor_specific_coding_id;
+	__u16    tx_codec_frame_size;
+	__u16    rx_codec_frame_size;
+	__le32   input_bandwidth;
+	__le32   output_bandwidth;
+	__u8     input_coding_format;
+	__u16    input_coding_format_comapny_id;
+	__u16    input_coding_format_vendor_specific_coding_id;
+	__u8     output_coding_format;
+	__u16    output_coding_format_comapny_id;
+	__u16    output_coding_format_vendor_specific_coding_id;
+	__u16    input_coded_data_size;
+	__u16    output_coded_data_size;
+	__u8     input_pcm_data_format;
+	__u8     output_pcm_data_format;
+	__u8     input_pcm_sample_payload_msb_position;
+	__u8     output_pcm_sample_payload_msb_position;
+	__u8     input_data_path;
+	__u8     output_data_path;
+	__u8     input_transport_unit_size; 
+	__u8     output_transport_unit_size;       
+	__le16   max_latency;
+	__le16   pkt_type;    
+	__u8     retrans_effort;
+} __packed;
+
+#define HCI_OP_ENHANCED_ACCEPT_SYNC_CONN_REQ    0x043e
+struct hci_cp_enhanced_accept_sync_conn_req {
+	bdaddr_t bdaddr;
+	__le32   tx_bandwidth;
+	__le32   rx_bandwidth;
+	__u8     tx_coding_format;
+	__u16    tx_coding_format_comapny_id;
+	__u16    tx_coding_format_vendor_specific_coding_id;
+	__u8     rx_coding_format;
+	__u16    rx_coding_format_comapny_id;
+	__u16    rx_coding_format_vendor_specific_coding_id;
+	__u16    tx_codec_frame_size;
+	__u16    rx_codec_frame_size;
+	__le32   input_bandwidth;
+	__le32   output_bandwidth;
+	__u8     input_coding_format;
+	__u16    input_coding_format_comapny_id;
+	__u16    input_coding_format_vendor_specific_coding_id;
+	__u8     output_coding_format;
+	__u16    output_coding_format_comapny_id;
+	__u16    output_coding_format_vendor_specific_coding_id;
+	__u16    input_coded_data_size;
+	__u16    output_coded_data_size;
+	__u8     input_pcm_data_format;
+	__u8     output_pcm_data_format;
+	__u8     input_pcm_sample_payload_msb_position;
+	__u8     output_pcm_sample_payload_msb_position;
+	__u8     input_data_path;
+	__u8     output_data_path;
+	__u8     input_transport_unit_size; 
+	__u8     output_transport_unit_size;       
+	__le16   max_latency;
+	__le16   pkt_type;    
+	__u8     retrans_effort;
+} __packed;
+
 #define HCI_OP_SNIFF_MODE		0x0803
 struct hci_cp_sniff_mode {
 	__le16   handle;
