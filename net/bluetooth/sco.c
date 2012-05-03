@@ -178,6 +178,7 @@ static int sco_connect(struct sock *sk)
 {
 	bdaddr_t *src = &bt_sk(sk)->src;
 	bdaddr_t *dst = &bt_sk(sk)->dst;
+	__u8 coding_format = sco_pi(sk)->coding_format;
 	struct sco_conn *conn;
 	struct hci_conn *hcon;
 	struct hci_dev  *hdev;
@@ -186,7 +187,6 @@ static int sco_connect(struct sock *sk)
 	BT_DBG("%s -> %s", batostr(src), batostr(dst));
 
 	hdev = hci_get_route(dst, src);
-	hdev->coding_format = SCO_CODING_FORMAT_CVSD;
 	
 	if (!hdev)
 		return -EHOSTUNREACH;
@@ -198,7 +198,7 @@ static int sco_connect(struct sock *sk)
 	else
 		type = SCO_LINK;
 
-	hdev->coding_format = sco_pi(sk)->coding_format;
+	hdev->coding_format = coding_format;
 
 	hcon = hci_connect(hdev, type, dst, BT_ADDR_BREDR, BT_SECURITY_LOW, HCI_AT_NO_BONDING);
 	if (IS_ERR(hcon)) {
