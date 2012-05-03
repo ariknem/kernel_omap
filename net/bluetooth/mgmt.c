@@ -1960,6 +1960,7 @@ static int toggle_le_scan(struct sock *sk, struct hci_dev *hdev, void *data,
 	param_cp.interval = cpu_to_le16(cp->interval);
 	param_cp.window = cpu_to_le16(cp->window);
 	param_cp.filter_policy = cp->filter_policy;
+	hdev->discovery.type = DISCOV_TYPE_LE;
 
 	err = hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_PARAM, sizeof(param_cp),
 								&param_cp);
