@@ -293,7 +293,13 @@ struct l2cap_chan *l2cap_chan_create(struct sock *sk)
 void l2cap_chan_destroy(struct l2cap_chan *chan)
 {
 	write_lock(&chan_list_lock);
-	list_del(&chan->global_l);
+/*	if (atomic_read(&chan->refcnt) == 1) {*/
+	if (test_and_set_bit(CONF_CHAN_DESTROYED, &chan->conf_state) == 0) {
+		BT_INFO(">>>>>>> l2cap_chan_destroy calling list_del on chan %X",chan);
+		list_del(&chan->global_l);
+	} else {
+		BT_INFO(">>>>>>> l2cap_chan_destroy skipping list_del on chan %X",chan);
+	}
 	write_unlock(&chan_list_lock);
 
 	l2cap_chan_put(chan);
