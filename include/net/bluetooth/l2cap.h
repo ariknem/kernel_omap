@@ -606,12 +606,17 @@ enum {
 static inline void l2cap_chan_hold(struct l2cap_chan *c)
 {
 	atomic_inc(&c->refcnt);
+	BT_INFO(">>>> l2cap_chan_hold chan=%X refcnt=%d",c,atomic_read(&c->refcnt));
 }
 
 static inline void l2cap_chan_put(struct l2cap_chan *c)
 {
-	if (atomic_dec_and_test(&c->refcnt))
+	if (atomic_dec_and_test(&c->refcnt)) {
+		BT_INFO(">>>> l2cap_chan_put destroy chan=%X refcnt=%d",c,atomic_read(&c->refcnt));
 		kfree(c);
+	} else {
+		BT_INFO(">>>> l2cap_chan_put chan=%X refcnt=%d",c,atomic_read(&c->refcnt));
+	}
 }
 
 static inline void l2cap_chan_lock(struct l2cap_chan *chan)
