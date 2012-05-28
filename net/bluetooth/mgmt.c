@@ -1204,20 +1204,21 @@ static int set_le(struct sock *sk, struct hci_dev *hdev, void *data, u16 len)
 	int err;
 	u8 val, enabled;
 
-	BT_DBG("request for %s", hdev->name);
+	BT_DBG("request for %s, val %d", hdev->name, cp->val);
 
 	hci_dev_lock(hdev);
 
-	if (!enable_le || !(hdev->features[4] & LMP_LE)) {
+	val = !!cp->val;
+
+	if (!enable_le || (!(hdev->features[4] & LMP_LE) && val == 1)) {
 		err = cmd_status(sk, hdev->id, MGMT_OP_SET_LE,
 				 MGMT_STATUS_NOT_SUPPORTED);
 		goto unlock;
 	}
 
-	val = !!cp->val;
 	enabled = !!(hdev->host_features[0] & LMP_HOST_LE);
 
-	if (!hdev_is_powered(hdev) || val == enabled) {
+	if (!hdev_is_powered(hdev) || val == enabled || val == 0) {
 		bool changed = false;
 
 		if (val != test_bit(HCI_LE_ENABLED, &hdev->dev_flags)) {
