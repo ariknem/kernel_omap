@@ -996,7 +996,8 @@ static int set_connectable(struct sock *sk, struct hci_dev *hdev, void *data,
 		goto failed;
 	}
 
-	if (!!cp->val == test_bit(HCI_PSCAN, &hdev->flags)) {
+	if ((!!cp->val == test_bit(HCI_PSCAN, &hdev->flags)) &&
+               (!test_bit(HCI_ISCAN, &hdev->flags))){
 		err = send_settings_rsp(sk, MGMT_OP_SET_CONNECTABLE, hdev);
 		goto failed;
 	}
