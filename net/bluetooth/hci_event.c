@@ -2466,7 +2466,7 @@ static inline void hci_cmd_complete_evt(struct hci_dev *hdev, struct sk_buff *sk
 
 	default:
 		BT_DBG("%s opcode 0x%x", hdev->name, opcode);
-		/* Remove LE support in case of ANT or AVPR enable */
+		/* Remove LE support in case of receiving HCI VS commands enabling ANT or AVPR */
 		if (opcode == 0xfdd0 || opcode == 0xfd92) {
 		    hdev->features[4] &= ~LMP_LE;
 		    BT_DBG("Removing LE support: hdev->features[4]=0x%02x", hdev->features[4]);
