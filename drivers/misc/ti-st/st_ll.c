@@ -54,7 +54,7 @@ static void ll_device_want_to_sleep(struct st_data_s *st_data)
 	/* update state */
 	st_data->ll_state = ST_LL_ASLEEP;
 
-	/* communicate to platform about chip asleep */
+	/* communicate to platform about chip wanting to asleep */
 	kim_data = st_data->kim_data;
 	if (kim_data->kim_pdev->dev.of_node) {
 		pr_debug("use device tree data");
@@ -64,7 +64,7 @@ static void ll_device_want_to_sleep(struct st_data_s *st_data)
 		pdata = kim_data->kim_pdev->dev.platform_data;
 
 	if (pdata->chip_asleep)
-		pdata->chip_asleep(NULL);
+		pdata->chip_asleep(kim_data);
 }
 
 static void ll_device_want_to_wakeup(struct st_data_s *st_data)
@@ -80,10 +80,12 @@ static void ll_device_want_to_wakeup(struct st_data_s *st_data)
 	case ST_LL_ASLEEP_TO_AWAKE:
 		/* duplicate wake_ind */
 		pr_err("duplicate wake_ind while waiting for Wake ack");
+		send_ll_cmd(st_data, LL_WAKE_UP_ACK);
 		break;
 	case ST_LL_AWAKE:
 		/* duplicate wake_ind */
 		pr_err("duplicate wake_ind already AWAKE");
+		send_ll_cmd(st_data, LL_WAKE_UP_ACK);
 		break;
 	case ST_LL_AWAKE_TO_ASLEEP:
 		/* duplicate wake_ind */
@@ -93,7 +95,7 @@ static void ll_device_want_to_wakeup(struct st_data_s *st_data)
 	/* update state */
 	st_data->ll_state = ST_LL_AWAKE;
 
-	/* communicate to platform about chip wakeup */
+	/* communicate to platform about chip wanting to wakeup */
 	kim_data = st_data->kim_data;
 	if (kim_data->kim_pdev->dev.of_node) {
 		pr_debug("use device tree data");
@@ -103,7 +105,7 @@ static void ll_device_want_to_wakeup(struct st_data_s *st_data)
 		pdata = kim_data->kim_pdev->dev.platform_data;
 
 	if (pdata->chip_awake)
-		pdata->chip_awake(NULL);
+		pdata->chip_awake(kim_data);
 }
 
 /**********************************************************************/
@@ -126,8 +128,13 @@ void st_ll_disable(struct st_data_s *ll)
 /* called when ST Core wants to update the state */
 void st_ll_wakeup(struct st_data_s *ll)
 {
+	struct kim_data_s       *kim_data = ll->kim_data;
+	struct ti_st_plat_data  *pdata = kim_data->kim_pdev->dev.platform_data;
 	if (likely(ll->ll_state != ST_LL_AWAKE)) {
 		send_ll_cmd(ll, LL_WAKE_UP_IND);	/* WAKE_IND */
+		/* communicate to platform about ST wanting chip wakeup */
+		if (pdata->chip_awake)
+			pdata->chip_awake(kim_data);
 		ll->ll_state = ST_LL_ASLEEP_TO_AWAKE;
 	} else {
 		/* don't send the duplicate wake_indication */
