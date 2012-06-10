@@ -1847,7 +1847,7 @@ static inline void rfcomm_process_rx(struct rfcomm_session *s)
 			kfree_skb(skb);
 	}
 
-	if (sk->sk_state == BT_CLOSED)
+	if ((sk->sk_state == BT_CLOSED) && (s->state != BT_CLOSED))
 		rfcomm_session_close(s, sk->sk_err);
 }
 
