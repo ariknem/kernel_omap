@@ -1406,7 +1406,7 @@ static bool hci_resolve_next_name(struct hci_dev *hdev)
 		return false;
 
 	e = hci_inquiry_cache_lookup_resolve(hdev, BDADDR_ANY, NAME_NEEDED);
-	if (hci_resolve_name(hdev, e) == 0) {
+	if (e && hci_resolve_name(hdev, e) == 0) {
 		e->name_state = NAME_PENDING;
 		return true;
 	}
@@ -1419,6 +1419,9 @@ static void hci_check_pending_name(struct hci_dev *hdev, struct hci_conn *conn,
 {
 	struct discovery_state *discov = &hdev->discovery;
 	struct inquiry_entry *e;
+
+	BT_DBG("name %p, name_len %d, discov->state %d",
+			name, name_len, discov->state);
 
 	if (conn && !test_and_set_bit(HCI_CONN_MGMT_CONNECTED, &conn->flags))
 		mgmt_device_connected(hdev, bdaddr, ACL_LINK, 0x00, 0, name,
@@ -1435,11 +1438,21 @@ static void hci_check_pending_name(struct hci_dev *hdev, struct hci_conn *conn,
 
 	e = hci_inquiry_cache_lookup_resolve(hdev, bdaddr, NAME_PENDING);
 	if (e) {
-		e->name_state = NAME_KNOWN;
 		list_del(&e->list);
-		if (name)
+		if (name) {
+			e->name_state = NAME_KNOWN;
 			mgmt_remote_name(hdev, bdaddr, ACL_LINK, 0x00,
 					 e->data.rssi, name, name_len);
+		} else {
+			e->name_state = NAME_NOT_KNOWN;
+		}
+	} else {
+	    /* The device was not found in a list of found devices names of which
+	     * are pending. This may happen in case when HCI Remote Name Request
+	     * was sent as a part of incoming connection establishing procedure.
+	     * Hence, there is no need to continue resolving a next name as it will
+	     * be done upon receiving another Remote Name Request Complete Event */
+	     return;
 	}
 
 	if (hci_resolve_next_name(hdev))
@@ -2076,7 +2089,7 @@ static inline void hci_remote_name_evt(struct hci_dev *hdev, struct sk_buff *skb
 	struct hci_ev_remote_name *ev = (void *) skb->data;
 	struct hci_conn *conn;
 
-	BT_DBG("%s", hdev->name);
+	BT_DBG("%s, status %d", hdev->name, ev->status);
 
 	hci_conn_check_pending(hdev);
 
