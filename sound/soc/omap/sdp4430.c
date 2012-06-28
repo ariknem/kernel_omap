@@ -317,6 +317,8 @@ static struct snd_soc_ops sdp4430_dmic_ops = {
 	.hw_params = sdp4430_dmic_hw_params,
 };
 
+extern short get_wilink_ver();
+
 static int mcbsp_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 			struct snd_pcm_hw_params *params)
 {
@@ -325,10 +327,17 @@ static int mcbsp_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	struct snd_interval *rate = hw_param_interval(params,
 					SNDRV_PCM_HW_PARAM_RATE);
 	unsigned int be_id = rtd->dai_link->be_id;
-
+	
 	if (be_id == OMAP_ABE_DAI_BT_VX) {
+		int wilink_chip_version = get_wilink_ver(); 
+
 		channels->min = 1;
-		rate->min = rate->max = 16000; // 8000
+		if (wilink_chip_version == BT_CHIP_VER_185X || wilink_chip_version == BT_CHIP_VER_189X)
+			rate->min = rate->max = 16000;
+		else
+			rate->min = rate->max = 8000;
+
+
 	} else if (be_id == OMAP_ABE_DAI_MM_FM) {
          	channels->min = 2;
 		rate->min = rate->max = 48000;

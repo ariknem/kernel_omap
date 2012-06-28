@@ -22,7 +22,7 @@
  * 02110-1301 USA
  *
  */
-
+#define DEBUG 1
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -349,6 +349,18 @@ static void unmute_be(struct snd_soc_pcm_runtime *be,
 	}
 }
 
+extern short get_wilink_chip_version();
+static short g_wilink_chip_version = 0;;
+
+short get_wilink_ver() {
+	if (g_wilink_chip_version == 0) {
+		g_wilink_chip_version = get_wilink_chip_version();
+		g_wilink_chip_version = g_wilink_chip_version & 0x7C00 >> 10;
+	}
+	return g_wilink_chip_version;
+}
+
+
 static void enable_be_port(struct snd_soc_pcm_runtime *be,
 		struct snd_soc_dai *dai, int stream)
 {
@@ -373,7 +385,11 @@ static void enable_be_port(struct snd_soc_pcm_runtime *be,
 				return;
 
 			/* BT_DL connection to McBSP 1 ports */
-			format.f = 16000; //8000
+			get_wilink_ver(); 
+			if (g_wilink_chip_version == BT_CHIP_VER_185X || g_wilink_chip_version == BT_CHIP_VER_189X)
+				format.f = 16000;
+			else
+				format.f = 8000;
 			format.samp_format = MONO_RSHIFTED_16;
 			abe_connect_serial_port(BT_VX_DL_PORT, &format, MCBSP1_TX);
 			omap_abe_port_enable(abe_priv->abe,
@@ -386,12 +402,18 @@ static void enable_be_port(struct snd_soc_pcm_runtime *be,
 				return;
 
 			/* BT_UL connection to McBSP 1 ports */
-			format.f = 16000; //8000
+			get_wilink_ver(); 
+			if (g_wilink_chip_version == BT_CHIP_VER_185X || g_wilink_chip_version == BT_CHIP_VER_189X)
+				format.f = 16000;
+			else
+				format.f = 8000;
 			format.samp_format = MONO_RSHIFTED_16;
 			abe_connect_serial_port(BT_VX_UL_PORT, &format, MCBSP1_RX);
 			omap_abe_port_enable(abe_priv->abe,
 				abe_priv->port[OMAP_ABE_BE_PORT_BT_VX_UL]);
 		}
+		dev_dbg(&be->dev, "%s: format.f %d\n", __func__, format.f);
+
 		break;
 	case OMAP_ABE_DAI_MM_FM:
 		if (stream == SNDRV_PCM_STREAM_PLAYBACK) {

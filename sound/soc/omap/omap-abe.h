@@ -68,6 +68,10 @@
 #define OMAP_ABE_DL1_HANDSFREE		4
 #endif
 
+#define BT_CHIP_VER_185X 11
+#define BT_CHIP_VER_189X 12
+
+
 int omap_abe_set_dl1_output(int output);
 
 #endif	/* End of __OMAP_MCPDM_H__ */
