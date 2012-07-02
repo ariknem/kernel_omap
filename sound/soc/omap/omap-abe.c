@@ -355,7 +355,7 @@ static short g_wilink_chip_version = 0;;
 short get_wilink_ver() {
 	if (g_wilink_chip_version == 0) {
 		g_wilink_chip_version = get_wilink_chip_version();
-		g_wilink_chip_version = g_wilink_chip_version & 0x7C00 >> 10;
+		g_wilink_chip_version = (g_wilink_chip_version & 0x7C00) >> 10;
 	}
 	return g_wilink_chip_version;
 }
@@ -385,7 +385,7 @@ static void enable_be_port(struct snd_soc_pcm_runtime *be,
 				return;
 
 			/* BT_DL connection to McBSP 1 ports */
-			get_wilink_ver(); 
+			get_wilink_ver();
 			if (g_wilink_chip_version == BT_CHIP_VER_185X || g_wilink_chip_version == BT_CHIP_VER_189X)
 				format.f = 16000;
 			else
