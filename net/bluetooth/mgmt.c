@@ -2301,10 +2301,10 @@ static int pair_device(struct sock *sk, struct hci_dev *hdev, void *data,
 		auth_type = HCI_AT_DEDICATED_BONDING_MITM;
 
 	if (cp->addr.type == MGMT_ADDR_BREDR)
-		conn = hci_connect(hdev, ACL_LINK, &cp->addr.bdaddr, BT_ADDR_INVALID, sec_level,
+		conn = hci_connect(hdev, ACL_LINK, &cp->addr.bdaddr, MGMT_ADDR_BREDR, sec_level,
 				   auth_type);
 	else
-		conn = hci_connect(hdev, LE_LINK, &cp->addr.bdaddr, BT_ADDR_INVALID, sec_level,
+		conn = hci_connect(hdev, LE_LINK, &cp->addr.bdaddr, cp->addr.type, sec_level,
 				   auth_type);
 
 	memset(&rp, 0, sizeof(rp));

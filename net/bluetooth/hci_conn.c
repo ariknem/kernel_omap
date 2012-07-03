@@ -625,18 +625,11 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type, bdaddr_t *dst, __u8
 
 		le = hci_conn_hash_lookup_ba(hdev, LE_LINK, dst);
 		if (!le) {
-			if (addr_type == BT_ADDR_INVALID) {
-				entry = hci_find_adv_entry(hdev, dst);
-				if (!entry)
-					return ERR_PTR(-EHOSTUNREACH);
 
-				dst_type = entry->bdaddr_type;
-			} else {
-				if (addr_type == BT_ADDR_LE_RANDOM)
-					dst_type = ADDR_LE_DEV_RANDOM;
-				else
-					dst_type = ADDR_LE_DEV_PUBLIC;
-			}
+			if (addr_type == MGMT_ADDR_LE_RANDOM)
+				dst_type = ADDR_LE_DEV_RANDOM;
+			else
+				dst_type = ADDR_LE_DEV_PUBLIC;
 
 			le = hci_conn_add(hdev, LE_LINK, dst);
 			if (!le)
