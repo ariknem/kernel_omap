@@ -230,15 +230,6 @@ void hci_enhanced_setup_sync(struct hci_conn *conn, __u16 handle)
 
 	conn->attempt++;
 
-	if ( hdev->coding_format == SCO_CODING_FORMAT_CVSD) {
-	    cp.input_bandwidth = cpu_to_le32(0x00003e80);
-	    cp.output_bandwidth = cpu_to_le32(0x00003e80);
-	
-	} else {
-	    cp.input_bandwidth = cpu_to_le32(0x00007d00);
-	    cp.output_bandwidth = cpu_to_le32(0x00007d00);
-	}
-
 	cp.handle   = cpu_to_le16(handle);
 
 	cp.tx_bandwidth   = cpu_to_le32(0x00001f40);
@@ -251,6 +242,8 @@ void hci_enhanced_setup_sync(struct hci_conn *conn, __u16 handle)
 	cp.rx_coding_format_vendor_specific_coding_id = 0x0000;
 	cp.tx_codec_frame_size = cpu_to_le16(0x0001);
 	cp.rx_codec_frame_size = cpu_to_le16(0x0001);
+	cp.input_bandwidth = cpu_to_le32(0x00007d00);
+	cp.output_bandwidth = cpu_to_le32(0x00007d00);
 	cp.input_coding_format = 0x04;
 	cp.input_coding_format_comapny_id = cpu_to_le16(hdev->manufacturer);
 	cp.input_coding_format_vendor_specific_coding_id = 0x0000;
