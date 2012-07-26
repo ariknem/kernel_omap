@@ -287,6 +287,7 @@ enum {
 #define HCI_SMP_LTK_SLAVE		0x83
 
 /* ---- HCI Error Codes ---- */
+#define HCI_ERROR_UNKNOWN_CONN_IDENTIFYER	0x02
 #define HCI_ERROR_AUTH_FAILURE		0x05
 #define HCI_ERROR_REJ_BAD_ADDR		0x0f
 #define HCI_ERROR_REMOTE_USER_TERM	0x13

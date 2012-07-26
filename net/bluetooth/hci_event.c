@@ -1998,6 +1998,26 @@ static inline void hci_disconn_complete_evt(struct hci_dev *hdev, struct sk_buff
 
 	if (ev->status == 0)
 		conn->state = BT_CLOSED;
+	/*
+	 * Blueti:
+	 * This fixes a race condition when both peer and remote device disconnect
+	 * at the same time, a hci_disconnect_complete event is received first with
+	 * error code HCI_ERROR_UNKOWN_CONNECTION_IDENTIFYER, and then we receive
+	 * the same event with error code success. This causes the connection to
+	 * first be deleted, and then no notification of disconnection is sent to
+	 * the upper layers.
+	 *
+	 * This is a problem probably related to a race condition in the FW. Until
+	 * we have a better FW solution, this will allow proper recovery from
+	 * this bug.
+	 *
+	 * This fixes MCS114335
+	 *
+	 */
+	if (ev->status == HCI_ERROR_UNKNOWN_CONN_IDENTIFYER) {
+		BT_ERR(">>> BluetTI: Ignoring disconnect complete event if invalid handle");
+		goto unlock;
+	}
 
 	if (test_and_clear_bit(HCI_CONN_MGMT_CONNECTED, &conn->flags) &&
 			(conn->type == ACL_LINK || conn->type == LE_LINK)) {
