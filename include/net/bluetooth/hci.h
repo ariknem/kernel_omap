@@ -1318,6 +1318,13 @@ struct hci_ev_simple_pair_complete {
 	bdaddr_t bdaddr;
 } __packed;
 
+#define HCI_EV_USER_PASSKEY_NOTIFICATION	0x3b
+struct hci_ev_user_passkey_notification {
+	bdaddr_t bdaddr;
+	__le32		passkey;
+} __packed;
+
+
 #define HCI_EV_REMOTE_HOST_FEATURES	0x3d
 struct hci_ev_remote_host_features {
 	bdaddr_t bdaddr;

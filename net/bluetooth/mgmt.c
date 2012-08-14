@@ -108,6 +108,7 @@ static const u16 mgmt_events[] = {
 	MGMT_EV_DEVICE_BLOCKED,
 	MGMT_EV_DEVICE_UNBLOCKED,
 	MGMT_EV_DEVICE_UNPAIRED,
+	MGMT_EV_USER_PASSKEY_NOTIFICATION,
 };
 
 /*
@@ -3679,6 +3680,22 @@ static int user_pairing_resp_complete(struct hci_dev *hdev, bdaddr_t *bdaddr,
 	mgmt_pending_remove(cmd);
 
 	return err;
+}
+
+
+int mgmt_user_passkey_notification(struct hci_dev *hdev, bdaddr_t *bdaddr,
+			      u8 link_type, u8 addr_type, __le32 value)
+{
+	struct mgmt_ev_user_passkey_notification ev;
+
+	BT_DBG("%s", hdev->name);
+
+	bacpy(&ev.addr.bdaddr, bdaddr);
+	ev.addr.type = link_to_mgmt(link_type, addr_type);
+	ev.value = value;
+
+	return mgmt_event(MGMT_EV_USER_PASSKEY_NOTIFICATION, hdev, &ev, sizeof(ev),
+			  NULL);
 }
 
 int mgmt_user_confirm_reply_complete(struct hci_dev *hdev, bdaddr_t *bdaddr,

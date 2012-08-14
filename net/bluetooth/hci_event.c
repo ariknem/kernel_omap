@@ -3416,6 +3416,20 @@ unlock:
 	hci_dev_unlock(hdev);
 }
 
+
+static inline void hci_user_passkey_notification_evt(struct hci_dev *hdev,
+							struct sk_buff *skb)
+{
+	struct hci_ev_user_passkey_notification *ev = (void *) skb->data;
+
+	hci_dev_lock(hdev);
+
+	if (test_bit(HCI_MGMT, &hdev->dev_flags))
+		mgmt_user_passkey_notification(hdev, &ev->bdaddr,ACL_LINK,0,ev->passkey);
+
+	hci_dev_unlock(hdev);
+}
+
 static inline void hci_remote_host_features_evt(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct hci_ev_remote_host_features *ev = (void *) skb->data;
@@ -3760,6 +3774,10 @@ void hci_event_packet(struct hci_dev *hdev, struct sk_buff *skb)
 
 	case HCI_EV_SIMPLE_PAIR_COMPLETE:
 		hci_simple_pair_complete_evt(hdev, skb);
+		break;
+
+	case HCI_EV_USER_PASSKEY_NOTIFICATION:
+		hci_user_passkey_notification_evt(hdev, skb);
 		break;
 
 	case HCI_EV_REMOTE_HOST_FEATURES:

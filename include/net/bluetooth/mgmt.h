@@ -523,3 +523,10 @@ struct mgmt_ev_device_unblocked {
 struct mgmt_ev_device_unpaired {
 	struct mgmt_addr_info addr;
 } __packed;
+
+#define MGMT_EV_USER_PASSKEY_NOTIFICATION		0x0017
+struct mgmt_ev_user_passkey_notification {
+	struct mgmt_addr_info addr;
+	__le32 value;
+} __packed;
+
