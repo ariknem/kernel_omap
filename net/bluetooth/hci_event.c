@@ -1916,15 +1916,6 @@ static inline void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *sk
 		} else if (hci_enh_accept_sync_conn_supported(hdev)) {
 			struct hci_cp_enhanced_accept_sync_conn_req cp;
 
-                	if ( hdev->coding_format == SCO_CODING_FORMAT_CVSD) {
-                	    cp.input_bandwidth = cpu_to_le32(0x00003e80);
-                	    cp.output_bandwidth = cpu_to_le32(0x00003e80);
-                	
-                	} else {
-                	    cp.input_bandwidth = cpu_to_le32(0x00007d00);
-                	    cp.output_bandwidth = cpu_to_le32(0x00007d00);
-                	}
-                    
 			bacpy(&cp.bdaddr, &ev->bdaddr);
 			cp.tx_bandwidth   = cpu_to_le32(0x00001f40);
 			cp.rx_bandwidth   = cpu_to_le32(0x00001f40);
@@ -1936,6 +1927,8 @@ static inline void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *sk
 			cp.rx_coding_format_vendor_specific_coding_id = 0x0000;
 			cp.tx_codec_frame_size = cpu_to_le16(0x0001);
 			cp.rx_codec_frame_size = cpu_to_le16(0x0001);
+			cp.input_bandwidth = cpu_to_le32(0x00007d00);
+			cp.output_bandwidth = cpu_to_le32(0x00007d00);
 			cp.input_coding_format = 0x04;
 			cp.input_coding_format_comapny_id = cpu_to_le16(hdev->manufacturer);
 			cp.input_coding_format_vendor_specific_coding_id = 0x0000;
@@ -1946,14 +1939,14 @@ static inline void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *sk
 			cp.output_coded_data_size = cpu_to_le16(0x0001);
 			cp.input_pcm_data_format = 0x02;
 			cp.output_pcm_data_format = 0x02;
-			cp.input_pcm_sample_payload_msb_position = 0x00;
-			cp.output_pcm_sample_payload_msb_position = 0x00;
+			cp.input_pcm_sample_payload_msb_position = 0x01;
+			cp.output_pcm_sample_payload_msb_position = 0x01;
 			cp.input_data_path = 0x01;
 			cp.output_data_path = 0x01;
-			cp.input_transport_unit_size = 0xff;
-			cp.output_transport_unit_size = 0xff;
+			cp.input_transport_unit_size = 0x11;
+			cp.output_transport_unit_size = 0x11;
 			cp.max_latency    = 0xffff;
-			cp.pkt_type = cpu_to_le16(0x03c8);
+			cp.pkt_type = cpu_to_le16(0x038f);
 			cp.retrans_effort = 0xff;
 
 			hci_send_cmd(hdev, HCI_OP_ENHANCED_ACCEPT_SYNC_CONN_REQ,
