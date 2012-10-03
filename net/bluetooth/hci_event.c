@@ -3416,12 +3416,20 @@ static inline void hci_user_passkey_notification_evt(struct hci_dev *hdev,
 							struct sk_buff *skb)
 {
 	struct hci_ev_user_passkey_notification *ev = (void *) skb->data;
+	struct hci_conn *conn;
 
 	hci_dev_lock(hdev);
 
-	if (test_bit(HCI_MGMT, &hdev->dev_flags))
-		mgmt_user_passkey_notification(hdev, &ev->bdaddr,ACL_LINK,0,ev->passkey);
+	if (!test_bit(HCI_MGMT, &hdev->dev_flags))
+		goto unlock;
 
+	conn = hci_conn_hash_lookup_ba(hdev, ACL_LINK, &ev->bdaddr);
+	if (!conn)
+		goto unlock;
+
+	if (hci_conn_ssp_enabled(conn))
+		mgmt_user_passkey_notification(hdev, &ev->bdaddr,ACL_LINK,0,ev->passkey);
+unlock:
 	hci_dev_unlock(hdev);
 }
 
