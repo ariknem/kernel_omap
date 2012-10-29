@@ -3085,11 +3085,19 @@ static inline void hci_sync_conn_complete_evt(struct hci_dev *hdev, struct sk_bu
 	case 0x11:	/* Unsupported Feature or Parameter Value */
 	case 0x1c:	/* SCO interval rejected */
 	case 0x1a:	/* Unsupported Remote Feature */
+	case 0x1e:	/* Invalid LMP parameters */
 	case 0x1f:	/* Unspecified error */
 		if (conn->out && conn->attempt < 2) {
 			conn->pkt_type = (hdev->esco_type & SCO_ESCO_MASK) |
 					(hdev->esco_type & EDR_ESCO_MASK);
-			hci_setup_sync(conn, conn->link->handle);
+			if (lmp_esco_capable(conn->hdev)) {
+                        if (hci_enh_setup_sync_supported(hdev))
+                            hci_enhanced_setup_sync(conn, conn->link->handle);
+                        else
+                            hci_setup_sync(conn, conn->link->handle);
+			} else {
+                            hci_add_sco(conn, conn->link->handle);
+			}
 			goto unlock;
 		}
 		/* fall through */
