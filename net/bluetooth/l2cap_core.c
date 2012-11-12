@@ -1881,9 +1881,11 @@ int l2cap_chan_send(struct l2cap_chan *chan, struct msghdr *msg, size_t len,
 			break;
 		}
 
+        l2cap_chan_lock(chan);
 		err = l2cap_ertm_send(chan);
 		if (err >= 0)
 			err = len;
+        l2cap_chan_unlock(chan);
 
 		break;
 
