@@ -57,6 +57,8 @@
 #include <net/bluetooth/l2cap.h>
 #include <net/bluetooth/smp.h>
 
+#define L2CAP_WAIT_ACK_TIMEOUT_SEC       2
+
 bool disable_ertm;
 
 static u32 l2cap_feat_mask = L2CAP_FEAT_FIXED_CHAN;
@@ -1331,10 +1333,12 @@ int __l2cap_wait_ack(struct sock *sk)
 	DECLARE_WAITQUEUE(wait, current);
 	int err = 0;
 	int timeo = HZ/5;
+       struct timespec time = CURRENT_TIME_SEC;
+       struct timespec cur_time = CURRENT_TIME_SEC;
 
 	add_wait_queue(sk_sleep(sk), &wait);
 	set_current_state(TASK_INTERRUPTIBLE);
-	while (chan->unacked_frames > 0 && chan->conn) {
+	while (chan->unacked_frames > 0 && chan->conn && ((cur_time.tv_sec- time.tv_sec) < L2CAP_WAIT_ACK_TIMEOUT_SEC)) {
 		if (!timeo)
 			timeo = HZ/5;
 
@@ -1343,6 +1347,7 @@ int __l2cap_wait_ack(struct sock *sk)
 			break;
 		}
 
+		cur_time=CURRENT_TIME_SEC;
 		release_sock(sk);
 		timeo = schedule_timeout(timeo);
 		lock_sock(sk);
