@@ -1104,6 +1104,7 @@ static void rfcomm_make_uih(struct sk_buff *skb, u8 addr)
 /* ---- RFCOMM frame reception ---- */
 static int rfcomm_recv_ua(struct rfcomm_session *s, u8 dlci)
 {
+    int ret = 0;
 	BT_DBG("session %p state %ld dlci %d", s, s->state, dlci);
 
 	if (dlci) {
@@ -1148,10 +1149,11 @@ static int rfcomm_recv_ua(struct rfcomm_session *s, u8 dlci)
 
 		case BT_DISCONN:
 			rfcomm_session_del(s);
+            ret = 1;
 			break;
 		}
 	}
-	return 0;
+	return ret;
 }
 
 static int rfcomm_recv_dm(struct rfcomm_session *s, u8 dlci)
@@ -1642,6 +1644,7 @@ static int rfcomm_recv_frame(struct rfcomm_session *s, struct sk_buff *skb)
 {
 	struct rfcomm_hdr *hdr = (void *) skb->data;
 	u8 type, dlci, fcs;
+    int ret = 0;
 
 	dlci = __get_dlci(hdr->addr);
 	type = __get_type(hdr->ctrl);
@@ -1674,7 +1677,7 @@ static int rfcomm_recv_frame(struct rfcomm_session *s, struct sk_buff *skb)
 
 	case RFCOMM_UA:
 		if (__test_pf(hdr->ctrl))
-			rfcomm_recv_ua(s, dlci);
+			ret = rfcomm_recv_ua(s, dlci);
 		break;
 
 	case RFCOMM_DM:
@@ -1693,7 +1696,7 @@ static int rfcomm_recv_frame(struct rfcomm_session *s, struct sk_buff *skb)
 		break;
 	}
 	kfree_skb(skb);
-	return 0;
+	return ret;
 }
 
 /* ---- Connection and data processing ---- */
@@ -1835,6 +1838,7 @@ static inline void rfcomm_process_rx(struct rfcomm_session *s)
 	struct socket *sock = s->sock;
 	struct sock *sk = sock->sk;
 	struct sk_buff *skb;
+	int session_deleted = 0;
 
 	BT_DBG("session %p state %ld qlen %d", s, s->state, skb_queue_len(&sk->sk_receive_queue));
 
@@ -1842,13 +1846,14 @@ static inline void rfcomm_process_rx(struct rfcomm_session *s)
 	while ((skb = skb_dequeue(&sk->sk_receive_queue))) {
 		skb_orphan(skb);
 		if (!skb_linearize(skb))
-			rfcomm_recv_frame(s, skb);
+			session_deleted = rfcomm_recv_frame(s, skb);
 		else
 			kfree_skb(skb);
 	}
 
-	if ((sk->sk_state == BT_CLOSED) && (s->state != BT_CLOSED))
+	if ((session_deleted == 0) && (sk->sk_state == BT_CLOSED) && (s->state != BT_CLOSED)) {
 		rfcomm_session_close(s, sk->sk_err);
+	}
 }
 
 static inline void rfcomm_accept_connection(struct rfcomm_session *s)
