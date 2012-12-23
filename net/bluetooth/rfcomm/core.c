@@ -49,6 +49,8 @@
 #include <net/bluetooth/l2cap.h>
 #include <net/bluetooth/rfcomm.h>
 
+#define BT_DBG(fmt, ...)	printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
+
 #define VERSION "1.11"
 
 static bool disable_cfc;
@@ -1782,6 +1784,8 @@ static inline void rfcomm_process_dlcs(struct rfcomm_session *s)
 
 	list_for_each_safe(p, n, &s->dlcs) {
 		d = list_entry(p, struct rfcomm_dlc, list);
+
+        BT_DBG("dlc %p flags 0x%4x", d,d->flags);
 
 		if (test_bit(RFCOMM_TIMED_OUT, &d->flags)) {
 			__rfcomm_dlc_close(d, ETIMEDOUT);
