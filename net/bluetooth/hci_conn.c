@@ -45,6 +45,8 @@
 #include <net/bluetooth/hci_core.h>
 #include <net/bluetooth/sco.h>
 
+extern int force_acl_master; /* Module param */
+
 static void hci_le_connect(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
@@ -110,7 +112,7 @@ void hci_acl_connect(struct hci_conn *conn)
 	}
 
 	cp.pkt_type = cpu_to_le16(conn->pkt_type);
-	if (lmp_rswitch_capable(hdev) && !(hdev->link_mode & HCI_LM_MASTER))
+	if (lmp_rswitch_capable(hdev) && !((hdev->link_mode & HCI_LM_MASTER) || force_acl_master))
 		cp.role_switch = 0x01;
 	else
 		cp.role_switch = 0x00;
