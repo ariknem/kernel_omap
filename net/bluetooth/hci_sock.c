@@ -50,6 +50,9 @@
 #include <net/bluetooth/hci_core.h>
 #include <net/bluetooth/hci_mon.h>
 
+
+#define BT_DBG(fmt, ...)     printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
+
 static atomic_t monitor_promisc = ATOMIC_INIT(0);
 
 /* ----- HCI socket interface ----- */
@@ -182,6 +185,8 @@ void hci_send_to_control(struct sk_buff *skb, struct sock *skip_sk)
 		nskb = skb_clone(skb, GFP_ATOMIC);
 		if (!nskb)
 			continue;
+
+        BT_DBG("calling sock_queue_rcv_skb, len %d", skb->len);
 
 		if (sock_queue_rcv_skb(sk, nskb))
 			kfree_skb(nskb);
