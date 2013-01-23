@@ -1910,6 +1910,9 @@ static inline void hci_conn_request_evt(struct hci_dev *hdev, struct sk_buff *sk
 			else
 				cp.role = 0x01; /* Remain slave */
 
+            cp.role = 0x00;
+            printk("%s:  cp.role = %d =-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n", __FUNCTION__,cp.role);
+
 			hci_send_cmd(hdev, HCI_OP_ACCEPT_CONN_REQ, sizeof(cp),
 				     &cp);
             

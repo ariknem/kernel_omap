@@ -116,6 +116,9 @@ void hci_acl_connect(struct hci_conn *conn)
 		cp.role_switch = 0x01;
 	else
 		cp.role_switch = 0x00;
+    
+    cp.role_switch = 0x00;
+    printk("%s:  cp.role_switch = %d =-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n", __FUNCTION__,cp.role_switch);
 
 	hci_send_cmd(hdev, HCI_OP_CREATE_CONN, sizeof(cp), &cp);
 }
