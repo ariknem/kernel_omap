@@ -27,6 +27,8 @@
 
 #include <linux/interrupt.h>
 #include <net/bluetooth/hci.h>
+#include <linux/hrtimer.h>
+#include <linux/ktime.h>
 
 /* HCI priority */
 #define HCI_PRIO_MAX	7
@@ -218,7 +220,8 @@ struct hci_dev {
 	struct delayed_work	power_off;
 
 	__u16			discov_timeout;
-	struct delayed_work	discov_off;
+	struct work_struct	discov_off;
+    struct hrtimer   discov_off_timer;
 
 	struct delayed_work	service_cache;
 

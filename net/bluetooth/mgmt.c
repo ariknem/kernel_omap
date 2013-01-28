@@ -920,14 +920,15 @@ static int set_discoverable(struct sock *sk, struct hci_dev *hdev, void *data,
 
 	if (!!cp->val == test_bit(HCI_DISCOVERABLE, &hdev->dev_flags)) {
 		if (hdev->discov_timeout > 0) {
-			cancel_delayed_work(&hdev->discov_off);
+			hrtimer_cancel(&hdev->discov_off_timer);
 			hdev->discov_timeout = 0;
 		}
 
 		if (cp->val && timeout > 0) {
 			hdev->discov_timeout = timeout;
-			queue_delayed_work(hdev->workqueue, &hdev->discov_off,
-				msecs_to_jiffies(hdev->discov_timeout * 1000));
+			hrtimer_start(&hdev->discov_off_timer,
+				ktime_add(ktime_get(),ktime_set( hdev->discov_timeout, 0)),
+				HRTIMER_MODE_ABS);
 		}
 
 		err = send_settings_rsp(sk, MGMT_OP_SET_DISCOVERABLE, hdev);
@@ -945,7 +946,7 @@ static int set_discoverable(struct sock *sk, struct hci_dev *hdev, void *data,
 	if (cp->val)
 		scan |= SCAN_INQUIRY;
 	else
-		cancel_delayed_work(&hdev->discov_off);
+		hrtimer_cancel(&hdev->discov_off_timer);
 
 	err = hci_send_cmd(hdev, HCI_OP_WRITE_SCAN_ENABLE, 1, &scan);
 	if (err < 0)
@@ -1019,7 +1020,7 @@ static int set_connectable(struct sock *sk, struct hci_dev *hdev, void *data,
 
 		if (test_bit(HCI_ISCAN, &hdev->flags) &&
 						hdev->discov_timeout > 0)
-			cancel_delayed_work(&hdev->discov_off);
+			hrtimer_cancel(&hdev->discov_off_timer);
 	}
 
 	err = hci_send_cmd(hdev, HCI_OP_WRITE_SCAN_ENABLE, 1, &scan);

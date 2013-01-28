@@ -830,7 +830,8 @@ static int hci_dev_do_close(struct hci_dev *hdev)
 	flush_work(&hdev->rx_work);
 
 	if (hdev->discov_timeout > 0) {
-		cancel_delayed_work(&hdev->discov_off);
+        	BT_DBG("hrtimer_cancel discov_off");
+		hrtimer_cancel(&hdev->discov_off_timer);
 		hdev->discov_timeout = 0;
 		clear_bit(HCI_DISCOVERABLE, &hdev->dev_flags);
 	}
@@ -1213,9 +1214,9 @@ static void hci_discov_off(struct work_struct *work)
 	struct hci_dev *hdev;
 	u8 scan = SCAN_PAGE;
 
-	hdev = container_of(work, struct hci_dev, discov_off.work);
+	hdev = container_of(work, struct hci_dev, discov_off);
 
-	BT_DBG("%s", hdev->name);
+	BT_INFO("%s", hdev->name);
 
 	hci_dev_lock(hdev);
 
@@ -1800,6 +1801,18 @@ int hci_le_scan(struct hci_dev *hdev, u8 type, u16 interval, u16 window,
 	return 0;
 }
 
+enum hrtimer_restart discov_off_timer_cb( struct hrtimer *timer ) {
+    struct hci_dev* hdev = container_of(timer, struct hci_dev, discov_off_timer);
+
+    BT_INFO("-------------------------");
+    BT_INFO("discov_off_timer_cb");
+    BT_INFO("-------------------------");  
+
+    queue_work(hdev->workqueue, &hdev->discov_off);
+    
+    return HRTIMER_NORESTART;
+}
+
 /* Register HCI device */
 int hci_register_dev(struct hci_dev *hdev)
 {
@@ -1880,8 +1893,11 @@ int hci_register_dev(struct hci_dev *hdev)
 	INIT_WORK(&hdev->power_on, hci_power_on);
 	INIT_DELAYED_WORK(&hdev->power_off, hci_power_off);
 
-	INIT_DELAYED_WORK(&hdev->discov_off, hci_discov_off);
+	INIT_WORK(&hdev->discov_off, hci_discov_off);
 
+	hrtimer_init(&hdev->discov_off_timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
+	hdev->discov_off_timer.function = discov_off_timer_cb;
+        
 	memset(&hdev->stat, 0, sizeof(struct hci_dev_stats));
 
 	atomic_set(&hdev->promisc, 0);
