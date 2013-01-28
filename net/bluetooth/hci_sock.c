@@ -51,7 +51,7 @@
 #include <net/bluetooth/hci_mon.h>
 
 
-#define BT_DBG(fmt, ...)     printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
+//#define BT_DBG(fmt, ...)     printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
 
 static atomic_t monitor_promisc = ATOMIC_INIT(0);
 

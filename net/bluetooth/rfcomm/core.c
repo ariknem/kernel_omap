@@ -49,7 +49,7 @@
 #include <net/bluetooth/l2cap.h>
 #include <net/bluetooth/rfcomm.h>
 
-#define BT_DBG(fmt, ...)	printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
+//#define BT_DBG(fmt, ...)	printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
 
 #define VERSION "1.11"
 

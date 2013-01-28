@@ -34,7 +34,7 @@
 #include <net/bluetooth/mgmt.h>
 #include <net/bluetooth/smp.h>
 
-#define BT_DBG(fmt, ...)	printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
+//#define BT_DBG(fmt, ...)	printk("%s:" fmt "\n", __FUNCTION__,##__VA_ARGS__)
 
 
 bool enable_hs;
